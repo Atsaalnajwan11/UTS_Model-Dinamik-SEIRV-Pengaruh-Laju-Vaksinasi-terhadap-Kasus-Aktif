@@ -26,6 +26,7 @@ class VercelPathFixer:
             environ.get('RAW_URI')
         )
         path_info = environ.get('PATH_INFO', '')
+        method = environ.get('REQUEST_METHOD', 'GET')
 
         if matched_path:
             clean_path = matched_path.split('?')[0]
@@ -33,10 +34,10 @@ class VercelPathFixer:
                 environ['PATH_INFO'] = clean_path
             elif path_info.startswith('/api/index'):
                 sub = path_info[len('/api/index'):]
-                environ['PATH_INFO'] = sub if sub else '/'
+                environ['PATH_INFO'] = sub if sub else ('/api/simulate' if method == 'POST' else '/')
         else:
-            if path_info in ('/api/index', '/api/index/'):
-                environ['PATH_INFO'] = '/'
+            if path_info in ('/api/index', '/api/index/', '/'):
+                environ['PATH_INFO'] = '/api/simulate' if method == 'POST' else '/'
             elif path_info.startswith('/api/index/'):
                 environ['PATH_INFO'] = path_info[len('/api/index'):]
 

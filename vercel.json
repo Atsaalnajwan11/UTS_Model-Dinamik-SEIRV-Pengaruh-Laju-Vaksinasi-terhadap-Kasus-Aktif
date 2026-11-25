@@ -2,12 +2,16 @@
   "version": 2,
   "rewrites": [
     {
+      "source": "/api/simulate",
+      "destination": "/api/simulate"
+    },
+    {
       "source": "/(.*)",
       "destination": "/api/index"
     }
   ],
   "functions": {
-    "api/index.py": {
+    "api/*.py": {
       "includeFiles": "{templates/**,DataSetCvd.xlsx,model_cache.json}",
       "maxDuration": 30
     }

@@ -122,23 +122,7 @@ def run_ode(beta, sigma, gamma, nu, days=None):
         'V': [int(round(x)) for x in sol[:, 4]],
     }
 
-@app.route('/')
-@app.route('/api/index')
-@app.route('/index')
-def index():
-    return render_template('index.html', ctx=MODEL_CONTEXT)
-
-@app.route('/api/simulate', methods=['POST'])
-@app.route('/simulate', methods=['POST'])
-@app.route('/api/index/simulate', methods=['POST'])
-@app.route('/api/index/api/simulate', methods=['POST'])
-def api_simulate():
-    payload = request.get_json(force=True)
-    nu = float(payload.get('nu', MODEL_CONTEXT['nu_opt']))
-    beta = float(payload.get('beta', MODEL_CONTEXT['beta_opt']))
-    gamma = float(payload.get('gamma', MODEL_CONTEXT['gamma_opt']))
-    sigma = float(payload.get('sigma', MODEL_CONTEXT['sigma_opt']))
-
+def compute_simulation(nu, beta, gamma, sigma):
     sim_current = run_ode(beta, sigma, gamma, nu)
     sim_novacc = run_ode(beta, sigma, gamma, 0.0)
 
@@ -178,7 +162,7 @@ def api_simulate():
             'tone': sc['tone']
         })
 
-    return jsonify({
+    return {
         'current': sim_current,
         'novacc_I': sim_novacc['I'],
         'metrics': {
@@ -191,7 +175,38 @@ def api_simulate():
             'end_vacc': sim_current['V'][-1]
         },
         'scenarios': scenarios_out
-    })
+    }
+
+INIT_SIMULATION = compute_simulation(
+    MODEL_CONTEXT['nu_opt'],
+    MODEL_CONTEXT['beta_opt'],
+    MODEL_CONTEXT['gamma_opt'],
+    MODEL_CONTEXT['sigma_opt']
+)
+
+@app.route('/', methods=['GET', 'POST'])
+@app.route('/api/index', methods=['GET', 'POST'])
+@app.route('/index', methods=['GET', 'POST'])
+def index():
+    if request.method == 'POST':
+        return api_simulate()
+    return render_template('index.html', ctx=MODEL_CONTEXT, init_sim=INIT_SIMULATION)
+
+@app.route('/api/simulate', methods=['POST', 'GET'])
+@app.route('/simulate', methods=['POST', 'GET'])
+@app.route('/api/index/simulate', methods=['POST', 'GET'])
+@app.route('/api/index/api/simulate', methods=['POST', 'GET'])
+def api_simulate():
+    if request.method == 'POST':
+        payload = request.get_json(force=True, silent=True) or {}
+    else:
+        payload = request.args
+    nu = float(payload.get('nu', MODEL_CONTEXT['nu_opt']))
+    beta = float(payload.get('beta', MODEL_CONTEXT['beta_opt']))
+    gamma = float(payload.get('gamma', MODEL_CONTEXT['gamma_opt']))
+    sigma = float(payload.get('sigma', MODEL_CONTEXT['sigma_opt']))
+
+    return jsonify(compute_simulation(nu, beta, gamma, sigma))
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
