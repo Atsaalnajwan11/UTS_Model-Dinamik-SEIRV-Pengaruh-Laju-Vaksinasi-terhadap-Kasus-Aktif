@@ -19,35 +19,29 @@ Lalu buka browser ke `http://127.0.0.1:5000`.
 
 ---
 
-## Cara Deploy ke Vercel
+## Hasil-Hasil
 
-Aplikasi ini sudah dikonfigurasi dengan `vercel.json` dan serverless entrypoint `api/index.py`.
 
-### Opsi 1: Deploy via GitHub (Paling Mudah & Otomatis)
-1. Push repositori ini ke GitHub:
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit for Vercel deployment"
-   git branch -M main
-   git remote add origin https://github.com/<username>/<repo-name>.git
-   git push -u origin main
-   ```
-2. Buka [Vercel Dashboard](https://vercel.com/) dan login.
-3. Klik **"Add New..."** > **"Project"**.
-4. Pilih repositori GitHub Anda lalu klik **"Import"**.
-5. Vercel akan otomatis mendeteksi konfigurasi `vercel.json` dan `requirements.txt`. Klik tombol **"Deploy"**.
+### WEBSITE
 
-### Opsi 2: Deploy via Vercel CLI
-1. Pasang Vercel CLI (jika belum ada):
    ```bash
-   npm install -g vercel
+   
    ```
-2. Jalankan perintah deployment dari direktori proyek:
+
+
+### DATASET(EXCEL)
+data.mendeley.com
    ```bash
-   vercel
+   https://data.mendeley.com/datasets/7szms6xrdb/1
    ```
-3. Ikuti instruksi terminal (tekan Enter untuk pilihan default). Untuk deploy ke production:
+
+### PENJELASAN YOUTUBE
+
    ```bash
-   vercel --prod
+
+   ```
+### RUJUKAN JURNAL
+
+   ```bash
+
    ```
