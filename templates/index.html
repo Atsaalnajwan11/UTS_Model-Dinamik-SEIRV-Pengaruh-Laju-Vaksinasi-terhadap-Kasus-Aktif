@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SEIRV Jabar — Sistem Dinamik Vaksinasi & Kasus Aktif COVID-19</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --canvas-outer: #dbe4ea;
+      --canvas-bg: #f4f7f8;
+      --card-ice: #e7eef2;
+      --card-white: #ffffff;
+      --charcoal-dark: #252726;
+      --charcoal-panel: #2b2d2c;
+      --charcoal-card: #363938;
+      --slate-blue: #9cb3c1;
+      --slate-blue-light: #b0c4d0;
+      --lime-accent: #e4f853;
+      --lime-hover: #d8ee3c;
+      --text-main: #181a19;
+      --text-muted: #6c757d;
+      --border-soft: #e2e8ec;
+      --pill-radius: 9999px;
+      --card-radius: 26px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--canvas-outer);
+      color: var(--text-main);
+      padding: 20px;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Main App Frame matching reference aesthetic */
+    .app-shell {
+      max-width: 1400px;
+      margin: 0 auto;
+      background-color: var(--canvas-bg);
+      border-radius: 34px;
+      padding: 26px 32px 34px;
+      box-shadow: 0 24px 60px rgba(24, 26, 25, 0.08);
+    }
+
+    /* Top Pill Navigation Bar */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 26px;
+    }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+    }
+
+    .brand-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--charcoal-dark);
+      color: var(--lime-accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      font-weight: 800;
+    }
+
+    .nav-pill-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--card-white);
+      padding: 5px;
+      border-radius: var(--pill-radius);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+    }
+
+    .nav-circle-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: 1px solid var(--border-soft);
+      background: var(--card-white);
+      color: var(--text-main);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .nav-circle-btn:hover {
+      background: var(--card-ice);
+    }
+
+    .nav-dark-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--charcoal-dark);
+      padding: 4px;
+      border-radius: var(--pill-radius);
+    }
+
+    .nav-tab {
+      border: none;
+      background: transparent;
+      color: #d1d5db;
+      font-family: inherit;
+      font-size: 0.83rem;
+      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: var(--pill-radius);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .nav-tab:hover {
+      color: #ffffff;
+    }
+
+    .nav-tab.active {
+      background: var(--lime-accent);
+      color: var(--charcoal-dark);
+      font-weight: 700;
+    }
+
+    .nav-tab.active::before {
+      content: "• ";
+      font-weight: 900;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-chip {
+      background: var(--card-white);
+      border: 1px solid var(--border-soft);
+      padding: 8px 14px;
+      border-radius: var(--pill-radius);
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot-live {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      display: inline-block;
+    }
+
+    /* Page Title Row */
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .title-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .back-circle {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--card-white);
+      border: 1px solid var(--border-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      color: var(--text-main);
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .page-title {
+      font-size: 2.15rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text-main);
+      line-height: 1.15;
+    }
+
+    .page-subtitle {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-pill-white {
+      background: var(--card-white);
+      border: 1px solid var(--border-soft);
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 0.84rem;
+      font-weight: 600;
+      padding: 10px 18px;
+      border-radius: var(--pill-radius);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+      transition: all 0.2s;
+    }
+
+    .btn-pill-white:hover {
+      background: var(--card-ice);
+    }
+
+    /* Top Summary Section (2 Big Rounded Cards like reference) */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 1.35fr 1fr;
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+
+    .summary-card {
+      background: var(--card-ice);
+      border-radius: var(--card-radius);
+      padding: 22px 26px;
+      position: relative;
+    }
+
+    .summary-metrics-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .metric-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .metric-big {
+      font-size: 1.85rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text-main);
+      line-height: 1.15;
+    }
+
+    .metric-big span {
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-left: 3px;
+    }
+
+    /* Timeline Progress Strip inside Left Summary Card */
+    .timeline-strip {
+      margin-top: 8px;
+    }
+
+    .timeline-months {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .timeline-bar-track {
+      display: grid;
+      grid-template-columns: 28% 24% 48%;
+      gap: 6px;
+      height: 10px;
+      margin-bottom: 10px;
+    }
+
+    .bar-seg-lime {
+      background: var(--lime-accent);
+      border-radius: var(--pill-radius);
+      border: 1px solid #d4ea3b;
+    }
+
+    .bar-seg-hatched {
+      background: repeating-linear-gradient(
+        -45deg,
+        #cfd9df,
+        #cfd9df 4px,
+        #e7eef2 4px,
+        #e7eef2 8px
+      );
+      border-radius: var(--pill-radius);
+    }
+
+    .phase-pills {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .phase-tag {
+      background: var(--card-white);
+      padding: 5px 12px;
+      border-radius: var(--pill-radius);
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-main);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .phase-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    /* Right Summary Card (Compartment Mini-Cards + Dark CTA Pill) */
+    .right-summary-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+
+    .expect-pill {
+      display: inline-block;
+      background: var(--card-white);
+      border: 1px solid var(--border-soft);
+      padding: 3px 10px;
+      border-radius: var(--pill-radius);
+      font-size: 0.74rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+
+    .arrow-badge {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--card-white);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      color: var(--text-main);
+    }
+
+    .mini-cards-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr) auto;
+      gap: 10px;
+      align-items: end;
+    }
+
+    .mini-comp-card {
+      background: var(--card-white);
+      border-radius: 16px;
+      padding: 12px 14px;
+      min-height: 86px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .mini-comp-card.highlight-lime {
+      background: var(--lime-accent);
+      min-height: 98px;
+    }
+
+    .mini-code {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .mini-val {
+      font-size: 0.92rem;
+      font-weight: 800;
+      color: var(--text-main);
+      margin: 2px 0;
+    }
+
+    .mini-name {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .mini-comp-card.highlight-lime .mini-name {
+      color: var(--charcoal-dark);
+    }
+
+    .btn-dark-pill {
+      background: var(--charcoal-dark);
+      color: #ffffff;
+      border: none;
+      padding: 12px 20px;
+      border-radius: var(--pill-radius);
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: transform 0.15s, background 0.2s;
+    }
+
+    .btn-dark-pill:hover {
+      background: #111212;
+      transform: translateY(-1px);
+    }
+
+    /* Filter / Parameter Control Bar matching "Active filters" row */
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 22px;
+    }
+
+    .filter-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-right: 4px;
+    }
+
+    .count-badge-dark {
+      background: var(--charcoal-dark);
+      color: #ffffff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .param-pill-control {
+      background: var(--card-white);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--pill-radius);
+      padding: 7px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      min-width: 215px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+    }
+
+    .param-pill-control label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .param-pill-control input[type="range"] {
+      flex: 1;
+      accent-color: var(--charcoal-dark);
+      cursor: pointer;
+      height: 4px;
+    }
+
+    .param-readout {
+      font-size: 0.8rem;
+      font-weight: 800;
+      color: var(--text-main);
+      background: var(--card-ice);
+      padding: 2px 9px;
+      border-radius: var(--pill-radius);
+      min-width: 58px;
+      text-align: center;
+    }
+
+    /* Main Dark Workspace Container matching lower dark panel in image */
+    .workspace-wrapper {
+      position: relative;
+      margin-top: 10px;
+    }
+
+    /* Floating Center Pill Tabs ("All Scenarios | Baseline | Percepatan 3x | Agresif 6x") */
+    .floating-tabs-row {
+      display: flex;
+      justify-content: center;
+      margin-bottom: -18px;
+      position: relative;
+      z-index: 10;
+    }
+
+    .floating-tabs-pill {
+      background: var(--card-white);
+      padding: 5px;
+      border-radius: var(--pill-radius);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+      border: 1px solid var(--border-soft);
+    }
+
+    .f-tab {
+      border: none;
+      background: transparent;
+      padding: 7px 16px;
+      border-radius: var(--pill-radius);
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text-main);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .f-tab:hover {
+      background: var(--card-ice);
+    }
+
+    .f-tab.active {
+      background: var(--lime-accent);
+      color: var(--charcoal-dark);
+    }
+
+    .f-tab-count {
+      background: var(--card-ice);
+      color: var(--text-main);
+      font-size: 0.72rem;
+      padding: 1px 7px;
+      border-radius: var(--pill-radius);
+    }
+
+    .f-tab.active .f-tab-count {
+      background: rgba(24, 26, 25, 0.12);
+    }
+
+    /* Dark Master Container */
+    .dark-board {
+      background: var(--charcoal-panel);
+      border-radius: 30px;
+      padding: 32px 26px 26px;
+      color: #ffffff;
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 22px;
+    }
+
+    /* Left Column inside Dark Board: Scenario List (like Unpaid Invoices list) */
+    .scenario-list-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .scenario-list-header h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+
+    .scenario-items {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .scenario-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 13px 16px;
+      border-radius: 18px;
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .scenario-row:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    /* Active Highlighted Row in Slate-Blue (#9cb3c1) matching #427-012 in reference */
+    .scenario-row.selected {
+      background: var(--slate-blue);
+      color: var(--text-main);
+      border-color: transparent;
+    }
+
+    .sc-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .sc-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--charcoal-card);
+      color: var(--lime-accent);
+      font-weight: 800;
+      font-size: 0.82rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .scenario-row.selected .sc-avatar {
+      background: var(--charcoal-dark);
+      color: var(--lime-accent);
+    }
+
+    .sc-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+
+    .sc-sub {
+      font-size: 0.74rem;
+      color: #9ca3af;
+      margin-top: 2px;
+    }
+
+    .scenario-row.selected .sc-sub {
+      color: #273036;
+      font-weight: 600;
+    }
+
+    .sc-badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 4px 11px;
+      border-radius: var(--pill-radius);
+      background: rgba(255, 255, 255, 0.1);
+      color: #e5e7eb;
+      white-space: nowrap;
+    }
+
+    .scenario-row.selected .sc-badge {
+      background: #ffffff;
+      color: var(--text-main);
+    }
+
+    .sc-val {
+      font-size: 0.92rem;
+      font-weight: 800;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    /* Right Panel inside Dark Board: Slate-Blue & Charcoal Detail Card */
+    .detail-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .slate-detail-card {
+      background: var(--slate-blue);
+      color: var(--text-main);
+      border-radius: 24px;
+      padding: 22px 24px;
+    }
+
+    .slate-top-meta {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1.1fr;
+      gap: 14px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .meta-caption {
+      font-size: 0.74rem;
+      font-weight: 600;
+      color: #2c3840;
+      margin-bottom: 3px;
+    }
+
+    .meta-heading {
+      font-size: 1.45rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pill-white-mini {
+      background: #ffffff;
+      color: var(--text-main);
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: var(--pill-radius);
+    }
+
+    .chart-canvas-card {
+      background: rgba(255, 255, 255, 0.92);
+      border-radius: 18px;
+      padding: 16px 18px;
+      margin-bottom: 16px;
+    }
+
+    .chart-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chart-card-title {
+      font-size: 0.92rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .chart-switch-group {
+      display: flex;
+      gap: 6px;
+    }
+
+    .chart-switch-btn {
+      border: 1px solid var(--border-soft);
+      background: var(--card-ice);
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 0.74rem;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: var(--pill-radius);
+      cursor: pointer;
+    }
+
+    .chart-switch-btn.active {
+      background: var(--charcoal-dark);
+      color: var(--lime-accent);
+      border-color: var(--charcoal-dark);
+    }
+
+    .chart-wrapper {
+      position: relative;
+      height: 270px;
+      width: 100%;
+    }
+
+    /* Bottom Totals Row inside Slate Card matching "Sub Total | Total | Balance Due | Pay out now" */
+    .slate-bottom-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      padding-top: 6px;
+    }
+
+    .bottom-stats {
+      display: flex;
+      gap: 28px;
+      flex-wrap: wrap;
+    }
+
+    .b-stat-label {
+      font-size: 0.74rem;
+      font-weight: 600;
+      color: #2c3840;
+    }
+
+    .b-stat-val {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .btn-lime-cta {
+      background: var(--lime-accent);
+      color: var(--charcoal-dark);
+      border: none;
+      padding: 12px 24px;
+      border-radius: var(--pill-radius);
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+      transition: all 0.2s;
+    }
+
+    .btn-lime-cta:hover {
+      background: var(--lime-hover);
+      transform: translateY(-1px);
+    }
+
+    /* ODE Formula Reference Footer inside Dark Board */
+    .ode-footer-strip {
+      background: var(--charcoal-card);
+      border-radius: 18px;
+      padding: 14px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 0.78rem;
+      color: #cbd5e1;
+    }
+
+    .ode-code-pill {
+      font-family: 'Courier New', monospace;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 4px 10px;
+      border-radius: 8px;
+      color: var(--lime-accent);
+      font-weight: 700;
+    }
+
+    @media (max-width: 1120px) {
+      .summary-grid { grid-template-columns: 1fr; }
+      .dark-board { grid-template-columns: 1fr; }
+      .slate-top-meta { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 680px) {
+      body { padding: 10px; }
+      .app-shell { padding: 18px; border-radius: 24px; }
+      .summary-metrics-row { grid-template-columns: 1fr; }
+      .mini-cards-row { grid-template-columns: 1fr 1fr; }
+      .page-title { font-size: 1.65rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-shell">
+    <!-- Top Pill Navigation -->
+    <header class="topbar">
+      <div class="brand-logo">
+        <div class="brand-icon">✻</div>
+        <span>SEIRV • Jawa Barat</span>
+      </div>
+
+      <div class="nav-pill-group">
+        <span class="nav-circle-btn" title="Populasi Jawa Barat">JB</span>
+        <div class="nav-dark-pill">
+          <button class="nav-tab" onclick="selectScenarioPreset('novacc')">Tanpa Vaksin</button>
+          <button class="nav-tab active" onclick="selectScenarioPreset('baseline')">Simulasi SEIRV</button>
+          <button class="nav-tab" onclick="selectScenarioPreset('moderat')">Vaksinasi 3×</button>
+          <button class="nav-tab" onclick="selectScenarioPreset('agresif')">Vaksinasi 6×</button>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <div class="status-chip">
+          <span class="dot-live"></span>
+          Flask ODE Engine • R² = {{ ctx.r2 }}
+        </div>
+      </div>
+    </header>
+
+    <!-- Page Title Header -->
+    <section class="page-header">
+      <div class="title-left">
+        <button class="back-circle" onclick="resetBaseline()" title="Reset Parameter Baseline">←</button>
+        <div>
+          <h1 class="page-title">Dinamika Vaksinasi &amp; Kasus Aktif</h1>
+          <div class="page-subtitle">Model Sistem Dinamik SEIRV Provinsi Jawa Barat • Dataset Empiris 5 Jun – 10 Sep 2021</div>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button class="btn-pill-white" onclick="resetBaseline()">↺ Reset Kalibrasi</button>
+        <button class="btn-pill-white" onclick="exportCSV()">＋ Ekspor Data CSV</button>
+      </div>
+    </section>
+
+    <!-- Top Two Ice-Blue Summary Cards -->
+    <section class="summary-grid">
+      <!-- Left Card -->
+      <div class="summary-card">
+        <div class="summary-metrics-row">
+          <div>
+            <div class="metric-label">Puncak Kasus Aktual</div>
+            <div class="metric-big">{{ "{:,}".format(ctx.peak_actual).replace(",", ".") }}</div>
+          </div>
+          <div>
+            <div class="metric-label">Puncak Simulasi SEIRV</div>
+            <div class="metric-big" id="top-peak-sim">118.343</div>
+          </div>
+          <div>
+            <div class="metric-label">Periode Observasi</div>
+            <div class="metric-big">98<span>hari</span></div>
+          </div>
+        </div>
+
+        <div class="timeline-strip">
+          <div class="timeline-months">
+            <span>Jun 2021</span>
+            <span>Jul 2021 (Puncak)</span>
+            <span>Agu 2021</span>
+            <span>Sep 2021</span>
+          </div>
+          <div class="timeline-bar-track">
+            <div class="bar-seg-lime"></div>
+            <div class="bar-seg-lime"></div>
+            <div class="bar-seg-hatched"></div>
+          </div>
+          <div class="phase-pills">
+            <span class="phase-tag"><span class="phase-dot" style="background:#0284c7;"></span>Fase Ekspansi Awal</span>
+            <span class="phase-tag"><span class="phase-dot" style="background:#d97706;"></span>Akselerasi Vaksinasi</span>
+            <span class="phase-tag"><span class="phase-dot" style="background:#059669;"></span>Pelandaian Kurva Aktif</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Card -->
+      <div class="summary-card">
+        <div class="right-summary-top">
+          <div>
+            <div class="metric-label">Total Populasi Jawa Barat (BPS)</div>
+            <div class="metric-big">
+              48.274.162
+              <span class="expect-pill" id="top-r0-pill">R₀ = 1,98</span>
+            </div>
+          </div>
+          <div class="arrow-badge">↗</div>
+        </div>
+
+        <div class="mini-cards-row">
+          <div class="mini-comp-card">
+            <div class="mini-code">β = <span id="card-beta">{{ ctx.beta_opt }}</span></div>
+            <div class="mini-val" id="card-s-end">-</div>
+            <div class="mini-name">Susceptible (S)</div>
+          </div>
+          <div class="mini-comp-card highlight-lime">
+            <div class="mini-code">ν = <span id="card-nu">{{ ctx.nu_opt }}</span></div>
+            <div class="mini-val" id="card-v-end">-</div>
+            <div class="mini-name">Vaccinated (V)</div>
+          </div>
+          <div class="mini-comp-card">
+            <div class="mini-code">γ = <span id="card-gamma">{{ ctx.gamma_opt }}</span></div>
+            <div class="mini-val" id="card-r-end">-</div>
+            <div class="mini-name">Recovered (R)</div>
+          </div>
+          <button class="btn-dark-pill" onclick="selectScenarioPreset('agresif')">Uji 6× Vaksin</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive Parameter Filter Strip -->
+    <section class="filter-bar">
+      <div class="filter-title">
+        Parameter ODE <span class="count-badge-dark">4</span>
+      </div>
+
+      <div class="param-pill-control">
+        <label for="in-nu">Laju Vaksinasi (ν)</label>
+        <input type="range" id="in-nu" min="0" max="0.006" step="0.0001" value="{{ ctx.nu_opt }}" oninput="triggerSimulation()" />
+        <span class="param-readout" id="lbl-nu">{{ ctx.nu_opt }}</span>
+      </div>
+
+      <div class="param-pill-control">
+        <label for="in-beta">Transmisi (β)</label>
+        <input type="range" id="in-beta" min="0.25" max="0.90" step="0.005" value="{{ ctx.beta_opt }}" oninput="triggerSimulation()" />
+        <span class="param-readout" id="lbl-beta">{{ ctx.beta_opt }}</span>
+      </div>
+
+      <div class="param-pill-control">
+        <label for="in-gamma">Kesembuhan (γ)</label>
+        <input type="range" id="in-gamma" min="0.10" max="0.45" step="0.01" value="{{ ctx.gamma_opt }}" oninput="triggerSimulation()" />
+        <span class="param-readout" id="lbl-gamma">{{ ctx.gamma_opt }}</span>
+      </div>
+
+      <div class="param-pill-control">
+        <label for="in-sigma">Inkubasi (σ)</label>
+        <input type="range" id="in-sigma" min="0.10" max="0.35" step="0.005" value="{{ ctx.sigma_opt }}" oninput="triggerSimulation()" />
+        <span class="param-readout" id="lbl-sigma">{{ ctx.sigma_opt }}</span>
+      </div>
+    </section>
+
+    <!-- Lower Dark Workspace with Floating Pill Tabs -->
+    <section class="workspace-wrapper">
+      <div class="floating-tabs-row">
+        <div class="floating-tabs-pill">
+          <button class="f-tab active" id="ftab-all" onclick="switchChartView('active', this)">
+            Kurva Kasus Aktif <span class="f-tab-count">I(t)</span>
+          </button>
+          <button class="f-tab" id="ftab-comp" onclick="switchChartView('compartments', this)">
+            Transisi Populasi <span class="f-tab-count">S·R·V</span>
+          </button>
+          <button class="f-tab" id="ftab-exp" onclick="switchChartView('exposed', this)">
+            Terpapar vs Aktif <span class="f-tab-count">E·I</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="dark-board">
+        <!-- Left List: Policy Scenarios -->
+        <div>
+          <div class="scenario-list-header">
+            <h3>Skenario Laju Vaksinasi</h3>
+            <span style="font-size:0.76rem; color:#9ca3af;">Klik untuk simulasi</span>
+          </div>
+          <div class="scenario-items" id="scenario-list-container"></div>
+        </div>
+
+        <!-- Right Detail Slate-Blue Card -->
+        <div class="detail-container">
+          <div class="slate-detail-card">
+            <div class="slate-top-meta">
+              <div>
+                <div class="meta-caption">Skenario Terpilih</div>
+                <div class="meta-heading">
+                  <span id="detail-code">#SEIRV-01</span>
+                  <span class="pill-white-mini" id="detail-badge">Baseline</span>
+                </div>
+              </div>
+              <div>
+                <div class="meta-caption">Wilayah Studi</div>
+                <div class="meta-heading" style="font-size:1.25rem;">Jawa Barat ◈</div>
+              </div>
+              <div>
+                <div class="meta-caption">Validasi Empiris</div>
+                <div style="font-weight:700; font-size:0.9rem;">MAPE {{ ctx.mape }}% • R² {{ ctx.r2 }}</div>
+                <div style="font-size:0.74rem; color:#2c3840;">DataSetCvd.xlsx (98 Hari)</div>
+              </div>
+            </div>
+
+            <!-- Interactive Chart Area -->
+            <div class="chart-canvas-card">
+              <div class="chart-card-head">
+                <div class="chart-card-title" id="chart-main-title">Perbandingan Kasus Aktif Aktual vs Model SEIRV</div>
+                <div class="chart-switch-group">
+                  <button class="chart-switch-btn active" onclick="switchChartView('active', this)">Kasus Aktif I(t)</button>
+                  <button class="chart-switch-btn" onclick="switchChartView('compartments', this)">Kompartemen S-R-V</button>
+                </div>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="mainChart"></canvas>
+              </div>
+            </div>
+
+            <!-- Bottom Summary Metrics & Lime Action Button -->
+            <div class="slate-bottom-bar">
+              <div class="bottom-stats">
+                <div>
+                  <div class="b-stat-label">Puncak Kasus Aktif</div>
+                  <div class="b-stat-val" id="bot-peak">118.343</div>
+                </div>
+                <div>
+                  <div class="b-stat-label">Kasus Akhir Hari ke-98</div>
+                  <div class="b-stat-val" id="bot-end">17.890</div>
+                </div>
+                <div>
+                  <div class="b-stat-label">Reduksi vs Tanpa Vaksin</div>
+                  <div class="b-stat-val" id="bot-red">-6,8%</div>
+                </div>
+              </div>
+
+              <button class="btn-lime-cta" onclick="exportCSV()">Unduh Hasil Simulasi</button>
+            </div>
+          </div>
+
+          <div class="ode-footer-strip">
+            <span>Persamaan Diferensial Sistem Dinamik SEIRV:</span>
+            <span class="ode-code-pill">dS/dt = -βSI/N - νS | dE/dt = βSI/N - σE | dI/dt = σE - (γ+δ)I | dR/dt = γI | dV/dt = νS</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const DATES = {{ ctx.dates | tojson }};
+    const ACTUAL_ACTIVE = {{ ctx.actual_active | tojson }};
+    const DEFAULT_PARAMS = {
+      nu: {{ ctx.nu_opt }},
+      beta: {{ ctx.beta_opt }},
+      gamma: {{ ctx.gamma_opt }},
+      sigma: {{ ctx.sigma_opt }}
+    };
+
+    let currentView = 'active';
+    let selectedScenarioId = 'baseline';
+    let latestApiData = null;
+    let debounceTimer = null;
+
+    const ctxCanvas = document.getElementById('mainChart').getContext('2d');
+    const mainChart = new Chart(ctxCanvas, {
+      type: 'line',
+      data: {
+        labels: DATES,
+        datasets: []
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: {
+              font: { family: 'Plus Jakarta Sans', size: 11, weight: '600' },
+              usePointStyle: true
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { maxTicksLimit: 9, font: { family: 'Plus Jakarta Sans', size: 11 } },
+            grid: { display: false }
+          },
+          y: {
+            ticks: { font: { family: 'Plus Jakarta Sans', size: 11 } },
+            grid: { color: '#edf2f7' }
+          }
+        }
+      }
+    });
+
+    function fmtNum(n) {
+      return Math.round(n).toLocaleString('id-ID');
+    }
+
+    function triggerSimulation() {
+      const nu = parseFloat(document.getElementById('in-nu').value);
+      const beta = parseFloat(document.getElementById('in-beta').value);
+      const gamma = parseFloat(document.getElementById('in-gamma').value);
+      const sigma = parseFloat(document.getElementById('in-sigma').value);
+
+      document.getElementById('lbl-nu').textContent = nu.toFixed(5);
+      document.getElementById('lbl-beta').textContent = beta.toFixed(3);
+      document.getElementById('lbl-gamma').textContent = gamma.toFixed(3);
+      document.getElementById('lbl-sigma').textContent = sigma.toFixed(3);
+
+      document.getElementById('card-nu').textContent = nu.toFixed(5);
+      document.getElementById('card-beta').textContent = beta.toFixed(3);
+      document.getElementById('card-gamma').textContent = gamma.toFixed(3);
+
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => fetchSimulation(nu, beta, gamma, sigma), 90);
+    }
+
+    async function fetchSimulation(nu, beta, gamma, sigma) {
+      try {
+        const resp = await fetch('/api/simulate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nu, beta, gamma, sigma })
+        });
+        const data = await resp.json();
+        latestApiData = data;
+        renderDashboard(data);
+      } catch (err) {
+        console.error('Simulation API error:', err);
+      }
+    }
+
+    function renderDashboard(data) {
+      const m = data.metrics;
+      document.getElementById('top-peak-sim').textContent = fmtNum(m.peak_curr);
+      document.getElementById('top-r0-pill').textContent = `R₀ = ${m.r0.toFixed(2).replace('.', ',')}`;
+
+      const lastIdx = data.current.S.length - 1;
+      document.getElementById('card-s-end').textContent = fmtNum(data.current.S[lastIdx]);
+      document.getElementById('card-v-end').textContent = fmtNum(data.current.V[lastIdx]);
+      document.getElementById('card-r-end').textContent = fmtNum(data.current.R[lastIdx]);
+
+      document.getElementById('bot-peak').textContent = fmtNum(m.peak_curr) + ' jiwa';
+      document.getElementById('bot-end').textContent = fmtNum(m.end_active) + ' jiwa';
+      document.getElementById('bot-red').textContent = `-${m.reduction.toFixed(1).replace('.', ',')}%`;
+
+      renderScenarioList(data.scenarios);
+      updateChartDataset(data);
+    }
+
+    function renderScenarioList(scenarios) {
+      const container = document.getElementById('scenario-list-container');
+      container.innerHTML = '';
+
+      scenarios.forEach((sc, idx) => {
+        const isSel = sc.id === selectedScenarioId;
+        const row = document.createElement('div');
+        row.className = 'scenario-row' + (isSel ? ' selected' : '');
+        row.onclick = () => {
+          selectedScenarioId = sc.id;
+          document.getElementById('in-nu').value = sc.nu;
+          document.getElementById('detail-code').textContent = `#SEIRV-0${idx + 1}`;
+          document.getElementById('detail-badge').textContent = sc.tag;
+          syncTopNavTabs(sc.id);
+          triggerSimulation();
+        };
+
+        row.innerHTML = `
+          <div class="sc-left">
+            <div class="sc-avatar">0${idx + 1}</div>
+            <div>
+              <div class="sc-title">${sc.name}</div>
+              <div class="sc-sub">ν = ${sc.nu.toFixed(5)} • Puncak ${sc.peak_date}</div>
+            </div>
+          </div>
+          <span class="sc-badge">${sc.reduction > 0 ? '-' + sc.reduction + '%' : 'Kontrol'}</span>
+          <div class="sc-val">${fmtNum(sc.peak)}</div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function updateChartDataset(data) {
+      if (currentView === 'active') {
+        document.getElementById('chart-main-title').textContent = 'Perbandingan Kasus Aktif Aktual vs Model SEIRV';
+        mainChart.data.datasets = [
+          {
+            label: 'Data Aktual Jawa Barat',
+            data: ACTUAL_ACTIVE,
+            borderColor: '#252726',
+            backgroundColor: 'rgba(37, 39, 38, 0.08)',
+            borderWidth: 2,
+            pointRadius: 2,
+            tension: 0.25
+          },
+          {
+            label: 'Simulasi SEIRV (Skenario Aktif)',
+            data: data.current.I,
+            borderColor: '#0284c7',
+            backgroundColor: 'rgba(2, 132, 199, 0.16)',
+            borderWidth: 3,
+            pointRadius: 0,
+            fill: true,
+            tension: 0.3
+          },
+          {
+            label: 'Tanpa Vaksinasi (ν = 0)',
+            data: data.novacc_I,
+            borderColor: '#e11d48',
+            borderDash: [6, 5],
+            borderWidth: 2,
+            pointRadius: 0,
+            tension: 0.3
+          }
+        ];
+      } else if (currentView === 'compartments') {
+        document.getElementById('chart-main-title').textContent = 'Dinamika Populasi Kompartemen S, R, dan V';
+        mainChart.data.datasets = [
+          {
+            label: 'Susceptible (S)',
+            data: data.current.S,
+            borderColor: '#0284c7',
+            borderWidth: 2.5,
+            pointRadius: 0,
+            tension: 0.25
+          },
+          {
+            label: 'Vaccinated (V)',
+            data: data.current.V,
+            borderColor: '#84cc16',
+            backgroundColor: 'rgba(228, 248, 83, 0.25)',
+            borderWidth: 3,
+            pointRadius: 0,
+            fill: true,
+            tension: 0.25
+          },
+          {
+            label: 'Recovered (R)',
+            data: data.current.R,
+            borderColor: '#252726',
+            borderWidth: 2.2,
+            pointRadius: 0,
+            tension: 0.25
+          }
+        ];
+      } else {
+        document.getElementById('chart-main-title').textContent = 'Kompartemen Terpapar E(t) vs Terinfeksi Aktif I(t)';
+        mainChart.data.datasets = [
+          {
+            label: 'Exposed / Masa Inkubasi E(t)',
+            data: data.current.E,
+            borderColor: '#d97706',
+            backgroundColor: 'rgba(217, 119, 6, 0.14)',
+            borderWidth: 2.5,
+            pointRadius: 0,
+            fill: true,
+            tension: 0.3
+          },
+          {
+            label: 'Infected Active I(t)',
+            data: data.current.I,
+            borderColor: '#0284c7',
+            borderWidth: 3,
+            pointRadius: 0,
+            tension: 0.3
+          }
+        ];
+      }
+      mainChart.update();
+    }
+
+    function switchChartView(view, btnEl) {
+      currentView = view;
+      document.querySelectorAll('.f-tab, .chart-switch-btn').forEach(b => b.classList.remove('active'));
+      if (btnEl) btnEl.classList.add('active');
+      if (view === 'active') document.getElementById('ftab-all').classList.add('active');
+      if (view === 'compartments') document.getElementById('ftab-comp').classList.add('active');
+      if (view === 'exposed') document.getElementById('ftab-exp').classList.add('active');
+      if (latestApiData) updateChartDataset(latestApiData);
+    }
+
+    function selectScenarioPreset(id) {
+      selectedScenarioId = id;
+      const nuInput = document.getElementById('in-nu');
+      if (id === 'novacc') {
+        nuInput.value = 0;
+        document.getElementById('detail-code').textContent = '#SEIRV-01';
+        document.getElementById('detail-badge').textContent = 'Kontrol (0×)';
+      } else if (id === 'baseline') {
+        nuInput.value = DEFAULT_PARAMS.nu;
+        document.getElementById('detail-code').textContent = '#SEIRV-02';
+        document.getElementById('detail-badge').textContent = 'Aktual (1×)';
+      } else if (id === 'moderat') {
+        nuInput.value = (DEFAULT_PARAMS.nu * 3).toFixed(5);
+        document.getElementById('detail-code').textContent = '#SEIRV-03';
+        document.getElementById('detail-badge').textContent = 'Optimasi (3×)';
+      } else if (id === 'agresif') {
+        nuInput.value = (DEFAULT_PARAMS.nu * 6).toFixed(5);
+        document.getElementById('detail-code').textContent = '#SEIRV-04';
+        document.getElementById('detail-badge').textContent = 'Intensif (6×)';
+      }
+      syncTopNavTabs(id);
+      triggerSimulation();
+    }
+
+    function syncTopNavTabs(id) {
+      const map = { novacc: 0, baseline: 1, moderat: 2, agresif: 3 };
+      const tabs = document.querySelectorAll('.nav-dark-pill .nav-tab');
+      tabs.forEach((t, i) => {
+        t.classList.toggle('active', i === map[id]);
+      });
+    }
+
+    function resetBaseline() {
+      document.getElementById('in-nu').value = DEFAULT_PARAMS.nu;
+      document.getElementById('in-beta').value = DEFAULT_PARAMS.beta;
+      document.getElementById('in-gamma').value = DEFAULT_PARAMS.gamma;
+      document.getElementById('in-sigma').value = DEFAULT_PARAMS.sigma;
+      selectScenarioPreset('baseline');
+    }
+
+    function exportCSV() {
+      if (!latestApiData) return;
+      let csv = 'Tanggal,Aktual_I,Simulasi_S,Simulasi_E,Simulasi_I,Simulasi_R,Simulasi_V\n';
+      for (let i = 0; i < DATES.length; i++) {
+        csv += `${DATES[i]},${ACTUAL_ACTIVE[i]},${latestApiData.current.S[i]},${latestApiData.current.E[i]},${latestApiData.current.I[i]},${latestApiData.current.R[i]},${latestApiData.current.V[i]}\n`;
+      }
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Simulasi_SEIRV_Jawa_Barat_Flask.csv';
+      a.click();
+    }
+
+    // Initial load
+    triggerSimulation();
+  </script>
+</body>
+</html>

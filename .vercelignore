@@ -1,0 +1,11 @@
+.git
+.github
+*.ipynb
+kompartemen_seirv.png
+skenario_vaksinasi_seirv.png
+validasi_seirv_jabar.png
+__pycache__
+*.pyc
+.pytest_cache
+.vscode
+.env
