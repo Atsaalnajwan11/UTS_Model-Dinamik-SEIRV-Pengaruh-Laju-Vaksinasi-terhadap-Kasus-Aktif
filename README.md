@@ -38,7 +38,7 @@ data.mendeley.com
 ### PENJELASAN YOUTUBE
 
    ```bash
-
+   https://youtu.be/2yntjUo3fmQ
    ```
 ### RUJUKAN JURNAL
 
