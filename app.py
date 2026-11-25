@@ -123,10 +123,15 @@ def run_ode(beta, sigma, gamma, nu, days=None):
     }
 
 @app.route('/')
+@app.route('/api/index')
+@app.route('/index')
 def index():
     return render_template('index.html', ctx=MODEL_CONTEXT)
 
 @app.route('/api/simulate', methods=['POST'])
+@app.route('/simulate', methods=['POST'])
+@app.route('/api/index/simulate', methods=['POST'])
+@app.route('/api/index/api/simulate', methods=['POST'])
 def api_simulate():
     payload = request.get_json(force=True)
     nu = float(payload.get('nu', MODEL_CONTEXT['nu_opt']))
