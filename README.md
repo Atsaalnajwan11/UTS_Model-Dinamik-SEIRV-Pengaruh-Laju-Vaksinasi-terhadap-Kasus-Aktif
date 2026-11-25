@@ -40,6 +40,12 @@ data.mendeley.com
    ```bash
    https://youtu.be/2yntjUo3fmQ
    ```
+
+### JURNAL RUJUKAN
+
+   ```bash
+   https://drive.google.com/drive/folders/1Xa4rRAq02ooxeOKB-UQCpmFtkLO5x5aR?usp=sharing
+   ```
 ### RUJUKAN JURNAL
 
    ```bash
